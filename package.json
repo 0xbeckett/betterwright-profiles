@@ -1,0 +1,156 @@
+{
+  "name": "betterwright",
+  "version": "1.5.0",
+  "description": "A persistent, policy-guarded Playwright browser for AI agents with network controls, trusted credential filling, proof screenshots, and CAPTCHA helpers.",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "types": "types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "import": "./dist/src/index.js",
+      "default": "./dist/src/index.js"
+    },
+    "./agent": {
+      "types": "./types/agent.d.ts",
+      "import": "./dist/src/agent.js",
+      "default": "./dist/src/agent.js"
+    },
+    "./auth": {
+      "types": "./types/auth.d.ts",
+      "import": "./dist/src/auth.js",
+      "default": "./dist/src/auth.js"
+    },
+    "./policy": {
+      "types": "./types/policy.d.ts",
+      "import": "./dist/src/policy.js",
+      "default": "./dist/src/policy.js"
+    },
+    "./vault": {
+      "types": "./types/vault.d.ts",
+      "import": "./dist/src/vault.js",
+      "default": "./dist/src/vault.js"
+    },
+    "./prompt": {
+      "types": "./types/prompt.d.ts",
+      "import": "./dist/src/prompt.js",
+      "default": "./dist/src/prompt.js"
+    },
+    "./pi": {
+      "types": "./types/pi.d.ts",
+      "import": "./dist/src/pi.js",
+      "default": "./dist/src/pi.js"
+    },
+    "./pi-extension": {
+      "types": "./types/pi-extension.d.ts",
+      "import": "./dist/src/pi-extension.js",
+      "default": "./dist/src/pi-extension.js"
+    },
+    "./worker": {
+      "types": "./types/worker.d.ts",
+      "import": "./dist/src/worker-constants.js",
+      "default": "./dist/src/worker-constants.js"
+    },
+    "./mcp-server": {
+      "types": "./types/mcp-server.d.ts",
+      "import": "./dist/src/mcp-server.js",
+      "default": "./dist/src/mcp-server.js"
+    },
+    "./skills": {
+      "types": "./types/skills.d.ts",
+      "import": "./dist/src/skills.js",
+      "default": "./dist/src/skills.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "betterwright": "dist/bin/betterwright.js"
+  },
+  "files": [
+    "dist",
+    "!dist/src/cdpfree",
+    "types",
+    "skills",
+    "docs/*.md",
+    "examples/javascript",
+    "SETUP.md",
+    "SKILL.md",
+    "SECURITY.md",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "check:build": "npm run build && node scripts/check-build.mjs",
+    "test": "npm run build && node --test tests/node/*.test.mjs",
+    "test:unit": "npm run build && node scripts/run-unit-tests.mjs",
+    "test:types": "tsc --noEmit -p tests/types/tsconfig.json",
+    "lint": "biome ci src bin scripts tests",
+    "check:versions": "node scripts/check-versions.mjs",
+    "check:package": "npm run build && node scripts/check-package.mjs",
+    "release:check": "npm run check:versions && npm run lint && npm run typecheck && npm run check:build && npm run test:unit && npm run test:types && npm run check:package",
+    "prepublishOnly": "npm run release:check"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "packageManager": "npm@11.5.1",
+  "publishConfig": {
+    "access": "public"
+  },
+  "pi": {
+    "extensions": [
+      "./dist/src/pi-extension.js"
+    ]
+  },
+  "dependencies": {
+    "cloakbrowser": "0.4.10",
+    "playwright-core": "1.61.1",
+    "tldts": "7.4.9"
+  },
+  "peerDependencies": {
+    "@anthropic-ai/sdk": ">=0.30.0",
+    "@modelcontextprotocol/sdk": ">=1.13.0"
+  },
+  "peerDependenciesMeta": {
+    "@anthropic-ai/sdk": {
+      "optional": true
+    },
+    "@modelcontextprotocol/sdk": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "playwright",
+    "browser",
+    "automation",
+    "agent",
+    "llm",
+    "ai",
+    "captcha",
+    "browser-use",
+    "web-agent",
+    "pi-package"
+  ],
+  "license": "MIT",
+  "author": "BetterWright contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BetterWright/betterwright.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BetterWright/betterwright/issues"
+  },
+  "homepage": "https://github.com/BetterWright/betterwright#readme",
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.3",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@types/node": "^22.20.1",
+    "typescript": "^7.0.2"
+  },
+  "optionalDependencies": {
+    "patchright-core": "1.61.1"
+  }
+}

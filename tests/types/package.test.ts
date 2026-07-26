@@ -1,0 +1,217 @@
+import {
+  agentSystemPrompt,
+  BetterWright,
+  type BetterWrightOptions,
+  BrowserError,
+  CAPTCHA_SOLVE_STATUSES,
+  CAPTCHA_STAGES,
+  classifyChallengeStage,
+  detectBotChallenge,
+  type GenerateAndFillCredentialOptions,
+  type Guardrails,
+  LocalCredentialVault,
+  type LocalCredentialVaultOptions,
+  METADATA_ADDRESSES,
+  METADATA_HOSTNAMES,
+  NetworkPolicy,
+  type PendingCredentialListResult,
+  piImageArtifacts,
+  piImageContent,
+  piPrimaryImageArtifact,
+  type RunResult,
+  type VaultMatchMode,
+} from "betterwright";
+import {
+  type AgentMessage,
+  type AgentModel,
+  type AgentResult,
+  claudeModel,
+  discoveryTimeoutMs,
+  endpointDiscoverySources,
+  endpointModel,
+  endpointSourceName,
+  listEndpointModels,
+  MODEL_ENDPOINT_PRESETS,
+  type ModelEndpointSource,
+  modelSelectionChoices,
+  nativeModelCatalog,
+  resolveModel,
+  resolveModelSelection,
+  runAgentTask,
+  sealTranscript,
+} from "betterwright/agent";
+import { type CodexAuth, type LoginResult, loadCodexAuth, loginProvider } from "betterwright/auth";
+import type { PiImageContentBlock } from "betterwright/pi";
+import createBetterWrightPiExtension, {
+  createPiExtension,
+  type PiExtension,
+} from "betterwright/pi-extension";
+import type { NetworkDecision } from "betterwright/policy";
+import type { Guardrails as PromptGuardrails } from "betterwright/prompt";
+import {
+  createLocalCredentialVault,
+  type VaultAuditEntry,
+  type VaultOwnerListResult,
+  type VaultRevealedRecord,
+} from "betterwright/vault";
+import { METADATA_RESOLVER_RULES } from "betterwright/worker";
+
+const policy = new NetworkPolicy({
+  allowLoopback: true,
+  custom: (_url, details): NetworkDecision | null =>
+    details.method === "DELETE" ? { allowed: false, reason: "blocked" } : null,
+});
+const options: BetterWrightOptions = {
+  policy,
+  browser: "cloak",
+  headless: "auto",
+  downloadPolicy: "ask",
+};
+const browser = new BetterWright(options);
+const vaultOptions: LocalCredentialVaultOptions = { home: "/tmp/betterwright-types" };
+const localVault = new LocalCredentialVault(vaultOptions);
+const browserWithoutVault = new BetterWright({ vault: false });
+const run: Promise<RunResult<{ title: string }>> = browser.run<{ title: string }>(
+  "return { title: await page.title() }",
+  { session: "docs", note: "Reading the page" },
+);
+const generatedMatchMode: VaultMatchMode = "exact-origin";
+const generatedOptions: GenerateAndFillCredentialOptions = {
+  matchMode: generatedMatchMode,
+  currentPasswordSelector: "#old-password",
+};
+browser.generateAndFillCredential(generatedOptions);
+const pendingCredentials: Promise<PendingCredentialListResult> =
+  browser.listPendingCredentials({ session: "docs" });
+localVault.handleRequest("list-pending", {}, "https://signup.example.com");
+// @ts-expect-error Generated credential URL scope is a closed four-value union.
+browser.generateAndFillCredential({ matchMode: "same-site" });
+// @ts-expect-error Rotation preserves the stored credential's existing URL scope.
+browser.generateAndFillCredential({ id: "login-1", matchMode: "exact-origin" });
+const promptOptions: Guardrails & PromptGuardrails = {
+  confirmBeforePurchase: true,
+  passwordManager: "1Password",
+};
+const prompt: string = agentSystemPrompt(promptOptions);
+const images: Promise<PiImageContentBlock[]> = piImageContent({ artifacts: [] });
+const artifacts = piImageArtifacts({ artifacts: [] });
+const primaryArtifact = piPrimaryImageArtifact({ artifacts: [] });
+const extension: PiExtension = createPiExtension({ maxSteps: 100 });
+const defaultExtension: PiExtension = createBetterWrightPiExtension;
+const error: Error = new BrowserError("failed");
+const metadataAddress: boolean = METADATA_ADDRESSES.has("169.254.169.254");
+const metadataHost: boolean = METADATA_HOSTNAMES.has("metadata.google.internal");
+const captchaStage = classifyChallengeStage({
+  frames: [{ url: "https://www.google.com/recaptcha/api2/anchor?k=k", text: "I'm not a robot" }],
+});
+const captchaStatus: string = CAPTCHA_SOLVE_STATUSES.READY;
+const captchaStageName: string = CAPTCHA_STAGES.CHECKBOX;
+const challenge = detectBotChallenge({
+  url: "https://example.com",
+  text: "Verify you are human",
+});
+const customModel: AgentModel = {
+  name: "custom",
+  async complete({ system, messages, tools }) {
+    void [system, messages, tools];
+    return { text: "", toolCalls: [] };
+  },
+};
+const resolvedModel: AgentModel = resolveModel("claude-opus-4-8");
+const selectedModel: Promise<AgentModel> =
+  resolveModelSelection("qwen3:8b");
+const modelChoices = modelSelectionChoices(nativeModelCatalog());
+const claudeAdapter: AgentModel = claudeModel({ model: "claude-fable-5", effort: "low" });
+const endpointAdapter: AgentModel = endpointModel({
+  source: "ollama",
+  model: "qwen3:8b",
+});
+const customEndpointAdapter: AgentModel = endpointModel({
+  baseURL: "https://models.example/v1",
+  model: "vendor/opaque-id",
+});
+const endpointModels: Promise<{
+  source: "openrouter" | "ollama" | "vllm" | "custom";
+  baseURL: string;
+  models: string[];
+}> = listEndpointModels({ source: "vllm" });
+const openRouterBaseURL: string | null =
+  MODEL_ENDPOINT_PRESETS.openrouter.baseURL;
+const agentResult: Promise<AgentResult> = runAgentTask({
+  task: "read the page title",
+  model: customModel,
+  maxDurationMs: 120_000,
+  maxTranscriptChars: 500_000,
+  signal: new AbortController().signal,
+  onStep: ({ step, tool, note }) => void [step, tool, note],
+});
+const sealed: AgentMessage[] = sealTranscript([], "interrupted");
+const reasonCheck: AgentResult["reason"] = "no_progress";
+const discoverySources: ModelEndpointSource[] = endpointDiscoverySources();
+const discoveryBudget: number = discoveryTimeoutMs(endpointSourceName("open-router"));
+const login: Promise<LoginResult> = loginProvider({ provider: "codex", open: false });
+const codexAuth: CodexAuth | null = loadCodexAuth();
+
+// @ts-expect-error BetterWright supports only managed CloakBrowser.
+new BetterWright({ browser: "firefox" });
+// @ts-expect-error The stock Chromium fallback was removed.
+new BetterWright({ browser: "chromium" });
+// @ts-expect-error External browser binaries are not accepted.
+new BetterWright({ executablePath: "/opt/chromium" });
+// @ts-expect-error CDP attach mode was removed.
+new BetterWright({ connectOverCdp: "http://127.0.0.1:9222" });
+
+void [
+  run,
+  generatedMatchMode,
+  generatedOptions,
+  pendingCredentials,
+  prompt,
+  images,
+  artifacts,
+  primaryArtifact,
+  extension,
+  defaultExtension,
+  error,
+  metadataAddress,
+  metadataHost,
+  METADATA_RESOLVER_RULES,
+  captchaStage,
+  captchaStatus,
+  captchaStageName,
+  challenge,
+  resolvedModel,
+  selectedModel,
+  modelChoices,
+  claudeAdapter,
+  endpointAdapter,
+  customEndpointAdapter,
+  endpointModels,
+  openRouterBaseURL,
+  agentResult,
+  sealed,
+  reasonCheck,
+  discoverySources,
+  discoveryBudget,
+  login,
+  codexAuth,
+  localVault,
+  browserWithoutVault,
+];
+
+// The owner-only vault surface behind `betterwright vault`. These must never be
+// reachable from model code; they exist for a trusted host acting for the user.
+const ownedVault = createLocalCredentialVault({ home: "/tmp/betterwright-types" });
+const ownerListed: Promise<VaultOwnerListResult> = ownedVault.ownerList({
+  query: "github",
+  category: "login",
+});
+const ownerRevealed: Promise<VaultRevealedRecord> = ownedVault.ownerReveal("cred_1");
+const ownerAudited: Promise<{ entries: VaultAuditEntry[] }> = ownedVault.ownerAudit({
+  limit: 10,
+});
+const ownerRemoved = ownedVault.ownerRemove("cred_1");
+void ownerListed;
+void ownerRevealed;
+void ownerAudited;
+void ownerRemoved;

@@ -1,0 +1,97 @@
+import type {
+  AskResult,
+  BetterWrightOptions,
+  CredentialFillResult,
+  FillCredentialOptions,
+  GenerateAndFillCredentialOptions,
+  HandoffResult,
+  LiveViewChatMessage,
+  LiveViewDrainChatResult,
+  LiveViewOptions,
+  LiveViewStatus,
+  PendingCredentialListOptions,
+  PendingCredentialListResult,
+  PendingCredentialOptions,
+  PendingCredentialResult,
+  RunOptions,
+  RunResult,
+  WaitForAskOptions,
+  WaitForHandoffOptions,
+} from "./public.js";
+import type { CredentialVault } from "./common.js";
+import type { NetworkPolicy } from "./policy.js";
+import type { VaultMatchMode } from "./vault.js";
+
+export class BrowserError extends Error {}
+
+export function validateCredentialMatchMode(value: unknown): VaultMatchMode;
+
+export class BetterWright {
+  constructor(options?: BetterWrightOptions);
+
+  home: string;
+  policy: NetworkPolicy;
+  vault: CredentialVault | null;
+  credentialCapture: boolean;
+  browserFlavor: "cloak";
+  headless: boolean;
+  searchMinIntervalMs: number;
+  publicSearchPolicy: "block" | "allow";
+  downloadPolicy: "ask" | "allow" | "deny";
+  stealthRuntimeFix: boolean;
+  cloakV2: boolean;
+  upstreamProxy: string | null;
+  geoip: boolean;
+  locale: string | null;
+  timezone: string | null;
+  headedInvisible: boolean;
+  platform: "macos" | "windows" | "linux" | null;
+  /** Validated extra Chromium switches, from the option and the environment. */
+  chromiumArgs: string[];
+  defaultTimeout: number;
+  liveView: LiveViewOptions;
+
+  run<T = unknown>(code: string, options?: RunOptions): Promise<RunResult<T>>;
+  /**
+   * Close one session's pages and forget its state (tabs, `state`, cursor)
+   * without touching the browser, the profile, or other sessions.
+   */
+  closeSession(
+    session?: string,
+  ): Promise<{ ok: boolean; closed: boolean; pagesClosed: number; error?: string }>;
+  /** Start (or return the already-running) token-gated live-view server. */
+  startLiveView(options?: LiveViewOptions): Promise<LiveViewStatus>;
+  /** Stop the live-view server (no-op when not running). */
+  stopLiveView(): Promise<LiveViewStatus>;
+  /** Report live-view server state. */
+  liveViewStatus(): Promise<LiveViewStatus>;
+  /** Block until a human clicks Done/Cancel in the live viewer's handoff banner. */
+  waitForHandoff(options?: WaitForHandoffOptions): Promise<HandoffResult>;
+  /** Post a line into the live-view chat (agent steps / system notices). */
+  liveViewPostChat(options?: {
+    role?: "agent" | "you" | "system";
+    text?: string;
+    kind?: string;
+  }): Promise<{ ok: boolean; message?: LiveViewChatMessage; error?: string }>;
+  /**
+   * Drain freeform human messages typed in the live-view chat since the last
+   * drain (agent harness uses this between turns).
+   */
+  liveViewDrainChat(): Promise<LiveViewDrainChatResult>;
+  /** Block until a human answers a question in the live-view chat. */
+  waitForAsk(options?: WaitForAskOptions): Promise<AskResult>;
+  fillCredential(options?: FillCredentialOptions): Promise<CredentialFillResult>;
+  generateAndFillCredential(
+    options?: GenerateAndFillCredentialOptions,
+  ): Promise<CredentialFillResult>;
+  commitGeneratedCredential(
+    options: PendingCredentialOptions,
+  ): Promise<PendingCredentialResult>;
+  discardGeneratedCredential(
+    options: PendingCredentialOptions,
+  ): Promise<PendingCredentialResult>;
+  listPendingCredentials(
+    options?: PendingCredentialListOptions,
+  ): Promise<PendingCredentialListResult>;
+  close(): Promise<void>;
+}

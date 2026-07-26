@@ -1,0 +1,36 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# BetterWright runtime state (never commit a profile, vault, or artifacts)
+.betterwright/
+benchmarks/online-mind2web/runs/
+benchmarks/online-mind2web/tasks.local.json
+benchmarks/odysseys/runs/
+
+# Editor / OS
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Local dev scratch (probes, font artifacts, handoff notes)
+.tmp/
+tmp/
+artifacts/
+*.tmp.mjs
+logs/
+captcha-probe/
+tests/manual/
+internal/

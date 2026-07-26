@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  package-integrity:
+    # Keep this display name stable because main branch protection requires it.
+    name: Worker copies in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run check:versions
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run check:build
+      # Coverage is report-only: it prints the table in the job log without
+      # gating, so an experimental Node feature can never fail the release.
+      - run: npm run test:unit
+        env:
+          BETTERWRIGHT_COVERAGE: "1"
+      - run: npm run test:types
+      - run: npm run check:package
+
+  node:
+    # Keep this display name stable because main branch protection requires it.
+    name: Node tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - name: Install managed CloakBrowser
+        run: node dist/bin/betterwright.js setup --cloak-only
+      # REQUIRE_BROWSER turns the suite's local-dev skip into a CI failure, so a
+      # broken Cloak install can never report green by skipping every browser test.
+      - run: npm test
+        env:
+          BETTERWRIGHT_REQUIRE_BROWSER: "1"
+          BETTERWRIGHT_CHROMIUM_ROOT: "off"
+      - name: Test managed CloakBrowser headed mode
+        run: xvfb-run -a env BETTERWRIGHT_CLOAK_E2E=1 BETTERWRIGHT_CHROMIUM_ROOT=off node --test tests/node/cloak.test.mjs
